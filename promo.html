@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Promo - Toko Fathya Wear</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header>
+    <div class="logo">
+      <img src="img/logo.png" alt="Toko Fathya Wear Logo">
+    </div>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="about.html">About</a>
+      <a href="products.html">Catalog</a>
+      <a href="blog.html">Blog</a>
+      <a href="contact.html">Contact</a>
+      <a href="cart.html">🛒 Cart (<span id="cart-count">0</span>)</a>
+    </nav>
+  </header>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main>
+    <section class="promo-section">
+      <h2>Promo Spesial</h2>
+      <div id="promo-items" class="promo-container"></div>
+    </section>
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <p>&copy; 2026 Toko Fathya Wear</p>
+  </footer>
+
+  <!-- ===== SCRIPT ===== -->
+  <script>
+  // ====== DATA PROMO ======
+  const promoProducts = [
+    { 
+      name: "T-Shirt Promo", 
+      price: 1200000, 
+      promoPrice: 620000, 
+      colors: ["Cream", "White", "Navy"],
+      sizes: ["S","M","L","XL"],
+      images: [
+        "img/shirt-promo2-cream.jpg",
+        "img/shirt-promo2-putih.jpg",
+        "img/shirt-promo2-navy.jpg"
+      ]
+    },
+    { 
+      name: "Discount Bag", 
+      price: 800000, 
+      promoPrice: 450000, 
+      colors: ["Cream","Black","Green","Coklat"],
+      images: [
+        "img/tas-promo1-cream.jpg",
+        "img/tas-promo1-hitam.jpg",
+        "img/tas-promo1-hijau.jpg",
+        "img/tas-promo1-coklat.jpg"
+      ]
+    },
+    { 
+      name: "Discount Pants Jeans", 
+      price: 2800000, 
+      promoPrice: 1200000, 
+      sizes: ["28","30","32","34"],
+      colors: ["Black White","Navy","Navy White","Blue Jeans"],
+      images: [
+        "img/celana-promo1-loewe1.jpg",
+        "img/celana-promo1-loewe2.jpg",
+        "img/celana-promo1-loewe3.jpg",
+        "img/celana-promo1-loewe4.jpg"
+      ]
+    }
+  ];
+
+  // ====== UPDATE ICON CART ======
+  function updateCartIcon() {
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+    document.getElementById("cart-count").textContent = cart.length;
+  }
+
+  // ====== TAMPILKAN PROMO ======
+  function displayPromo() {
+    const container = document.getElementById("promo-items");
+    container.innerHTML = "";
+
+    promoProducts.forEach((item, index) => {
+      let colorSelect = "";
+      if (item.colors) {
+        const colorOptions = item.colors.map(c => `<option value="${c}">${c}</option>`).join("");
+        colorSelect = `
+          <select id="color-${index}" class="promo-select">
+            <option value="">-- Pilih Warna --</option>
+            ${colorOptions}
+          </select>
+        `;
+      }
+
+      let sizeSelect = "";
+      if (item.sizes) {
+        const sizeOptions = item.sizes.map(s => `<option value="${s}">${s}</option>`).join("");
+        sizeSelect = `
+          <select id="size-${index}" class="promo-select">
+            <option value="">-- Pilih Size --</option>
+            ${sizeOptions}
+          </select>
+        `;
+      }
+
+      container.innerHTML += `
+        <div class="promo-card">
+          <img id="promo-img-${index}" src="${item.images[0]}" alt="${item.name}">
+          <h3>${item.name}</h3>
+          <p>
+              <del>Rp ${item.price.toLocaleString('id-ID')}</del> 
+              <strong>Rp ${item.promoPrice.toLocaleString('id-ID')}</strong>
+          </p>
+          ${colorSelect}
+          ${sizeSelect}
+          <button onclick="addToCartPromo('${item.name}', ${item.promoPrice}, ${index})">
+            Tambah ke Keranjang
+          </button>
+        </div>
+      `;
+      startSlider(item.images, `promo-img-${index}`);
+    });
+  }
+
+  // ====== SLIDER UNTUK GAMBAR ======
+  function startSlider(images, imgId) {
+    let idx = 0;
+    setInterval(() => {
+      idx = (idx + 1) % images.length;
+      document.getElementById(imgId).src = images[idx];
+    }, 3000);
+  }
+
+  // ====== TAMBAH KE CART ======
+  function addToCartPromo(name, price, index) {
+    let color = document.getElementById(`color-${index}`)?.value || "";
+    let size = document.getElementById(`size-${index}`)?.value || "";
+
+    if (document.getElementById(`color-${index}`) && !color) {
+      alert("Silakan pilih warna terlebih dahulu!");
+      return;
+    }
+    if (document.getElementById(`size-${index}`) && !size) {
+      alert("Silakan pilih size terlebih dahulu!");
+      return;
+    }
+
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+    cart.push({ name, price, color, size, qty: 1 });
+    localStorage.setItem("cart", JSON.stringify(cart));
+    updateCartIcon();
+
+    alert(`${name}${color ? " ("+color+")" : ""}${size ? " (Size "+size+")" : ""} ditambahkan ke keranjang dengan harga promo!`);
+  }
+
+  // ====== LOAD ======
+  window.onload = function() {
+    displayPromo();
+    updateCartIcon();
+  };
+  </script>
+
+</body>
+</html>

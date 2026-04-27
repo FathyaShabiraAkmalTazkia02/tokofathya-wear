@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Konfirmasi Pesanan - Toko Fathya</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body onload="loadOrder()">
+
+<header>
+  <h1>Konfirmasi Pesanan</h1>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="about.html">About</a>
+    <a href="products.html">Products</a>
+    <a href="blog.html">Blog</a>
+    <a href="contact.html">Contact</a>
+    <a href="cart.html">🛒 Cart (<span id="cart-count">0</span>)</a>
+  </nav>
+</header>
+
+<main>
+  <div class="order-summary">
+    <h2>Ringkasan Pesanan</h2>
+
+    <ul id="order-items"></ul>
+
+    <p class="highlight">Total: Rp <span id="order-total">0</span></p>
+    <p><strong>Metode Pembayaran:</strong> <span id="order-method"></span></p>
+
+    <p><strong>Alamat Pengiriman:</strong></p>
+    <div class="address" id="order-address"></div>
+
+    <p class="order-number">Nomor Order: <span id="order-id"></span></p>
+    <p class="status"><strong>Status Pesanan:</strong> <span id="order-status"></span></p>
+
+    <!-- UPLOAD BUKTI -->
+    <div id="upload-section" class="upload-bukti-box" style="display:none;">
+      <h3>Upload Bukti Pembayaran</h3>
+
+      <label for="buktiBayar" class="custom-file">
+        📤 Pilih Gambar
+      </label>
+
+      <input type="file" id="buktiBayar" accept="image/*">
+
+      <img id="previewBukti">
+      <p id="uploadStatus"></p>
+
+      <button id="cancelUpload" style="display:none;">Batal Upload</button>
+    </div>
+
+    <!-- UCAPAN TERIMA KASIH -->
+    <div id="thankYouMessage" class="thank-you-message" style="display:none;">
+      <h2>🎉 Terima Kasih Telah Berbelanja di Toko Fathya Wear!</h2>
+      <p>Pesanan Anda sedang kami proses.</p>
+      <p>Kami akan segera memverifikasi pembayaran Anda.</p>
+      <p>Semoga hari Anda menyenangkan ❤️</p>
+    </div>
+
+    <!-- FITUR TAMBAHAN -->
+    <div id="extraFeatures" class="thank-you-message" style="display:none;">
+      <h3>📦 Informasi Pesanan Anda</h3>
+
+      <p>⏳ Verifikasi pembayaran maksimal 1x24 jam.</p>
+
+      <p>📧 Invoice pesanan telah disiapkan.</p>
+
+      <p>
+        📱 Hubungi Admin WhatsApp:
+        <a href="https://wa.me/6281234567890" target="_blank">
+          Chat Admin
+        </a>
+      </p>
+
+      <p class="order-time">
+        <strong>Waktu Pemesanan:</strong>
+        <span id="liveClock"></span>
+      </p>
+
+      <button onclick="refreshOrderStatus()" class="refresh-btn">
+        🔄 Refresh Status Pesanan
+      </button>
+    </div>
+
+    <button onclick="clearCartAndBack()">Kembali ke Home</button>
+  </div>
+</main>
+
+<footer>
+  <p>&copy; 2026 Toko Fathya Wear</p>
+</footer>
+
+<script>
+// ===== FORMAT RUPIAH =====
+function formatRupiah(angka) {
+  return Number(angka).toLocaleString("id-ID");
+}
+
+// ===== UPDATE ICON CART =====
+function updateCartIcon() {
+  let cart = JSON.parse(localStorage.getItem("cart")) || [];
+  let totalQty = cart.reduce((sum, item) => sum + (item.qty || 1), 0);
+  document.getElementById("cart-count").textContent = totalQty;
+}
+
+// ===== GENERATE ORDER ID =====
+function generateOrderId() {
+  const prefix = "ORD";
+  const shortTime = String(Date.now()).slice(-6);
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let randomLetters = "";
+
+  for (let i = 0; i < 3; i++) {
+    randomLetters += letters.charAt(Math.floor(Math.random() * letters.length));
+  }
+
+  return `${prefix}-${shortTime}-${randomLetters}`;
+}
+
+// ===== LOAD ORDER =====
+function loadOrder() {
+  updateCartIcon();
+
+  const cart = JSON.parse(localStorage.getItem("cart")) || [];
+  const total = parseInt(localStorage.getItem("checkoutTotal")) || 0;
+
+  let method = localStorage.getItem("paymentMethod") || "";
+  method = method.toLowerCase();
+
+  const bank = localStorage.getItem("bankName");
+  const wallet = localStorage.getItem("ewalletName");
+  const alamat = localStorage.getItem("codAddress");
+
+  const orderItems = document.getElementById("order-items");
+  const orderTotal = document.getElementById("order-total");
+  const orderMethod = document.getElementById("order-method");
+  const orderAddress = document.getElementById("order-address");
+  const orderStatus = document.getElementById("order-status");
+
+  orderItems.innerHTML = "";
+
+  if (cart.length === 0) {
+    orderItems.innerHTML = "<li>Tidak ada pesanan</li>";
+    orderTotal.textContent = "0";
+    return;
+  }
+
+  cart.forEach(item => {
+    const li = document.createElement("li");
+    li.innerHTML = `<span>${item.name} (x${item.qty})</span><span>Rp ${formatRupiah(item.price * item.qty)}</span>`;
+    orderItems.appendChild(li);
+  });
+
+  orderTotal.textContent = formatRupiah(total);
+
+  let methodText = "Tidak diketahui";
+  let statusText = "Diproses";
+  let estimasiText = "";
+
+  orderAddress.textContent = "";
+
+  if (method.includes("transfer")) {
+    methodText = `Transfer Bank (${bank || "Bank"})`;
+    orderAddress.textContent = "-";
+    statusText = "Menunggu Pembayaran";
+    document.getElementById("upload-section").style.display = "block";
+
+  } else if (method.includes("ewallet")) {
+    methodText = `E-Wallet (${wallet || "E-Wallet"})`;
+    orderAddress.textContent = "-";
+    statusText = "Menunggu Pembayaran";
+    document.getElementById("upload-section").style.display = "block";
+
+  } else if (method.includes("cod")) {
+    methodText = "Cash on Delivery (COD)";
+    orderAddress.textContent = alamat && alamat.trim() !== "" ? alamat : "-";
+    statusText = "Menunggu Pengiriman";
+    estimasiText = "Estimasi pengiriman: 3–5 hari kerja";
+  }
+
+  orderMethod.textContent = methodText;
+  orderStatus.textContent = statusText + (estimasiText ? " (" + estimasiText + ")" : "");
+  document.getElementById("order-id").textContent = generateOrderId();
+}
+
+// ===== REFRESH STATUS =====
+function refreshOrderStatus() {
+  const status = document.getElementById("order-status");
+
+  if (status.textContent.includes("Verifikasi")) {
+    status.textContent = "Pembayaran Terverifikasi - Pesanan Sedang Diproses";
+    alert("✅ Status pesanan diperbarui!");
+  } else {
+    alert("Pesanan Anda sedang diproses.");
+  }
+}
+
+// ===== UPLOAD BUKTI =====
+document.addEventListener("DOMContentLoaded", function () {
+  const inputFile = document.getElementById("buktiBayar");
+  const preview = document.getElementById("previewBukti");
+  const statusText = document.getElementById("uploadStatus");
+  const cancelBtn = document.getElementById("cancelUpload");
+  const thankYouMessage = document.getElementById("thankYouMessage");
+  const extraFeatures = document.getElementById("extraFeatures");
+
+  if (inputFile) {
+    inputFile.addEventListener("change", function () {
+      const file = this.files[0];
+
+      if (!file) return;
+
+      if (!file.type.startsWith("image/")) {
+        alert("File harus berupa gambar!");
+        return;
+      }
+
+      if (file.size > 2000000) {
+        alert("Ukuran maksimal 2MB!");
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = function (e) {
+        preview.src = e.target.result;
+        preview.classList.add("show");
+
+        statusText.textContent = "✅ Bukti pembayaran berhasil diupload!";
+        document.getElementById("order-status").textContent = "Menunggu Verifikasi Admin";
+
+        cancelBtn.style.display = "inline-block";
+
+        thankYouMessage.style.display = "block";
+        extraFeatures.style.display = "block";
+
+        thankYouMessage.scrollIntoView({
+          behavior: "smooth"
+        });
+      };
+
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ===== BATAL UPLOAD =====
+  cancelBtn.addEventListener("click", function () {
+    inputFile.value = "";
+    preview.src = "";
+    preview.classList.remove("show");
+
+    statusText.textContent = "";
+    cancelBtn.style.display = "none";
+
+    document.getElementById("order-status").textContent = "Menunggu Pembayaran";
+
+    thankYouMessage.style.display = "none";
+    extraFeatures.style.display = "none";
+  });
+});
+
+// ===== CLEAR CART =====
+function clearCartAndBack() {
+  localStorage.clear();
+  window.location.href = "index.html";
+}
+
+// ===== UPDATE CLOCK =====
+function updateClock() {
+  const now = new Date();
+
+  const hari = now.toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  });
+
+  const jam = now.toLocaleTimeString("id-ID");
+
+  document.getElementById("liveClock").innerHTML = `${hari} | ${jam}`;
+}
+
+// ===== JALANKAN JAM =====
+setInterval(updateClock, 1000);
+updateClock();
+
+</script>
+
+</body>
+</html>
